@@ -17,9 +17,9 @@ app.use(cors());
 
 // app.use("/", express.static(path.join(__dirname, "tmp")));
 
-// const routes = require("./routes");
+const routes = require("./routes");
 
-// app.use("/", routes);
+app.use("/", routes);
 
 app.listen(PORT, () => {
   console.log("back ejecutandose en el puerto: ", PORT);
