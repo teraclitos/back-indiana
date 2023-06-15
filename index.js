@@ -18,6 +18,7 @@ app.use(cors());
 // app.use("/", express.static(path.join(__dirname, "tmp")));
 
 const routes = require("./routes");
+const { setTimeout } = require("timers/promises");
 
 app.use("/", routes);
 
