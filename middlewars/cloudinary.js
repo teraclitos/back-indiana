@@ -36,4 +36,4 @@ const newArrayPhotosCloudinaryFunction = async (files) => {
   return await Promise.all(arrayFilesPromises)
 }
 
-module.exports = { newArrayPhotosCloudinaryFunction }
+module.exports = { newArrayPhotosCloudinaryFunction, cloudinary }
