@@ -15,11 +15,10 @@ const uploadFile = () => {
       const filetypes = '/jpeg|png|jpg/'
       console.log(file)
 
-      const mimetypes = filetypes.test(mimetypes.toLowerCase())
+      const mimetypes = filetypes.test(file.mimetype.toLowerCase())
       const extname = filetypes.test(
         path.extname(file.originalname).toLowerCase()
       )
-
       if (mimetypes && extname) {
         return cb(null, true)
       } else {
@@ -31,10 +30,10 @@ const uploadFile = () => {
       cb(null, uuidv4() + path.extname(file.originalname))
     }
   })
+  const uploadOneImage = multer({ storage }).single('image')
+  const uploadArrayOfImages = multer({ storage }).array('images')
 
-  const upload = multer({ storage }).array('images')
-
-  return upload
+  return { uploadArrayOfImages, uploadOneImage }
 }
 
 module.exports = { uploadFile }

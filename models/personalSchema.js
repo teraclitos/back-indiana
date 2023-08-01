@@ -1,27 +1,23 @@
 const mongoose = require('mongoose')
 
-const personalSchema = new mongoose.Schema({
-  profile_name: {
+const PersonalSchema = new mongoose.Schema({
+  profileName: {
     type: String,
     required: true,
 
     trim: true
   },
-  web_logo: {
-    type: String,
+
+  profile_IMG: {
+    type: Object,
     require: true
   },
 
-  profile_img: {
-    type: String,
-    require: true
-  },
-
-  profile_description: {
+  profileDescription: {
     type: String,
     require: true
   }
 })
 
-const userModel = mongoose.model('personal', personalSchema)
-module.exports = userModel
+const PersonalModel = mongoose.model('personal', PersonalSchema)
+module.exports = PersonalModel

@@ -1,5 +1,17 @@
 const cloudinary = require('cloudinary')
 
+const photoEdition = {
+  folder: 'photo-bioteil',
+  transformation: {
+    width: 700,
+    height: 700,
+    crop: 'fill',
+    fetch_format: 'auto',
+    quality: 'auto',
+    gravity: 'auto'
+  }
+}
+
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_KEY,
@@ -8,17 +20,7 @@ cloudinary.config({
 const newArrayPhotosCloudinaryFunction = async (files) => {
   const arrayFilesPromises = files.map((file) => {
     return cloudinary.v2.uploader
-      .upload(file.path, {
-        folder: 'photo-bioteil',
-        transformation: {
-          width: 700,
-          height: 700,
-          crop: 'fill',
-          fetch_format: 'auto',
-          quality: 'auto',
-          gravity: 'auto'
-        }
-      })
+      .upload(file.path, photoEdition)
       .then((result) => {
         const fileArrayLength =
             file.originalname.split('.')[0].split('-').length - 1
@@ -36,4 +38,15 @@ const newArrayPhotosCloudinaryFunction = async (files) => {
   return await Promise.all(arrayFilesPromises)
 }
 
-module.exports = { newArrayPhotosCloudinaryFunction, cloudinary }
+const singleFilePromise = async (file) => {
+  return cloudinary.v2.uploader
+    .upload(file.path, photoEdition)
+    .then((result) => {
+      return {
+        url: result.secure_url,
+        public_id: result.public_id
+      }
+    })
+}
+
+module.exports = { newArrayPhotosCloudinaryFunction, cloudinary, singleFilePromise }
