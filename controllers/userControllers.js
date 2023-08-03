@@ -48,3 +48,12 @@ exports.loginUser = async (req, res) => {
     return res.status(500).json({ error: true, msg: error.message })
   }
 }
+
+exports.logoutUser = async (req, res) => {
+  try {
+    const userId = res.locals.id
+    const findUserAndUpdate = await UserModel.findByIdAndUpdate({ _id: userId }, { $set: { token: '' } }, { new: true })
+    if (!findUserAndUpdate) { return res.status(404).json({ error: true, msg: 'user not found' }) }
+    return res.status(200).json({ error: null, msg: 'user logout' })
+  } catch (error) { return res.status(500).json({ error: true, msg: error.message }) }
+}

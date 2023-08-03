@@ -1,18 +1,19 @@
 const jwt = require('jsonwebtoken')
 const tokenValidation = (roleAuth) => async (req, res, next) => {
   try {
-    let token = ''
+    let tokenValue = ''
 
-    if (req.header('authorization') && req.header('authorization').toLowerCase().startString('Bearer')) {
-      token = req.header('authorization').split(' ')[1]
+    if (req.header('authorization') && req.header('authorization').toLowerCase().startsWith('bearer')) {
+      tokenValue = req.header('authorization').split(' ')[1]
     }
-    const verify = jwt.verify(token, process.env.TOKEN_SECRET)
 
-    if (!token || !verify.id) { return res.status(401).json({ error: true, msg: 'token missing or invalid' }) }
+    const verify = tokenValue && jwt.verify(tokenValue, process.env.JWT_SECRET)
+
+    if (!tokenValue || !verify.id) { return res.status(401).json({ error: true, msg: 'token missing or invalid' }) }
     const { role, id } = verify
 
     if (role !== roleAuth) {
-      return res.status(401).json({ error: true, msg: 'you have nop authorization' })
+      return res.status(401).json({ error: true, msg: 'you have no authorization' })
     }
 
     res.locals.id = id
