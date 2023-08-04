@@ -7,7 +7,6 @@ const PhotosSchema = new mongoose.Schema({
   pricesSizes: { type: Array, requiere: true },
   photos_URL: { type: Array, require: true },
   description: { type: String, trim: true, requiere: true },
-  // highlight: { type: String, default: `NO` },
   date: { type: Date, default: Date.now() }
 })
 

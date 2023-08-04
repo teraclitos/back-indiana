@@ -1,16 +1,25 @@
 const PhotosModel = require('../models/photosSchema')
-const { cloudinary } = require('../middlewars/cloudinary')
+const { deleteFilesFromCloudinary } = require('../middlewars/cloudinary')
 const { deleteFiles, filesToCloudinaryOrder, checkOrderOfPhotos } = require('../services/functionsPhotos')
-// const { validationResult } = require("express-validator");
+const { validationResult } = require('express-validator')
 
 exports.createPhoto = async (req, res) => {
   const { artistName, scientificName, pricesSizes, description } = req.body
   const files = req.files
+
+  const errorFromExpressValidator = validationResult(req)
+  if (!errorFromExpressValidator.isEmpty()) {
+    deleteFiles(files)
+
+    return res
+      .status(400)
+      .json({ error: true, msg: errorFromExpressValidator.array() })
+  }
   const orderPhotos = await filesToCloudinaryOrder(files)
   const checkOrder = checkOrderOfPhotos(orderPhotos)
-
   if (!checkOrder) {
     deleteFiles(files)
+    await deleteFilesFromCloudinary(orderPhotos)
     return res
       .status(400)
       .json({ error: true, msg: 'The order of the photos is incorrect' })
@@ -27,6 +36,7 @@ exports.createPhoto = async (req, res) => {
     await newPhoto.save()
     res.status(201).json({ error: null, msg: 'Photo created correctly' })
   } catch (error) {
+    await deleteFilesFromCloudinary(orderPhotos)
     res.status(500).json({ error: true, msg: error.message })
   } finally {
     deleteFiles(files)
@@ -54,23 +64,33 @@ exports.getOnePhoto = async (req, res) => {
 }
 exports.updatePhoto = async (req, res) => {
   const { artistName, scientificName, pricesSizes, description } = req.body
+
   const files = req.files
+  const errorFromExpressValidator = validationResult(req)
+  if (!errorFromExpressValidator.isEmpty()) {
+    deleteFiles(files)
+
+    return res
+      .status(400)
+      .json({ error: true, msg: errorFromExpressValidator.array() })
+  }
   const orderPhotos = await filesToCloudinaryOrder(files)
   const checkOrder = checkOrderOfPhotos(orderPhotos)
   if (!checkOrder) {
+    await deleteFilesFromCloudinary(orderPhotos)
     deleteFiles(files)
     return res
       .status(400)
       .json({ error: true, msg: 'The order of the photos is incorrect' })
   }
   try {
-    const photosMongoToUpdate = await PhotosModel.findById({
+    const oldPhotosMongoToUpdate = await PhotosModel.findById({
       _id: req.params.id
     })
-    if (!photosMongoToUpdate) {
+    if (!oldPhotosMongoToUpdate) {
       return res.status(404).json({ error: true, msg: 'photos not found' })
     }
-    const deletePhotosPublicIdCloudinaryPromises = photosMongoToUpdate.photos_URL.map(photo => cloudinary.v2.uploader.destroy(photo.public_id))
+
     await PhotosModel.findByIdAndUpdate({ _id: req.params.id },
       {
         artistName,
@@ -82,9 +102,10 @@ exports.updatePhoto = async (req, res) => {
       },
       { new: true })
 
-    await Promise.all(deletePhotosPublicIdCloudinaryPromises)
+    await deleteFilesFromCloudinary(oldPhotosMongoToUpdate.photos_URL)
     res.status(200).json({ error: null, msg: 'photos updated' })
   } catch (error) {
+    await deleteFilesFromCloudinary(orderPhotos)
     res.status(500).json({ error: true, msg: error.message })
   } finally {
     deleteFiles(files)
@@ -98,8 +119,8 @@ exports.deleteOnePhoto = async (req, res) => {
     if (!photosMongoDeleted) {
       return res.status(404).json({ error: true, msg: 'photos not found' })
     }
-    const deletePhotosPublicIdCloudinaryPromises = photosMongoDeleted.photos_URL.map(photo => cloudinary.v2.uploader.destroy(photo.public_id))
-    await Promise.all(deletePhotosPublicIdCloudinaryPromises)
+
+    await deleteFilesFromCloudinary(photosMongoDeleted.photos_URL)
 
     res.status(200).json({ error: null, msg: 'photos deleted' })
   } catch (error) {

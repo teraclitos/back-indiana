@@ -1,4 +1,5 @@
 const UserModel = require('../models/userSchema')
+const TokenRevokeModel = require('../models/tokenRevokeSchema')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 
@@ -34,16 +35,16 @@ exports.loginUser = async (req, res) => {
   const validUserPassword = !((!findUser || !passwordOk))
 
   if (!validUserPassword) {
-    return res.status(401).json({ error: true, msg: 'user or password incorrect' })
+    return res.status(401).json({ error: true, msg: 'invalid credentials' })
   }
   const token = jwt.sign({ id: findUser._id, role: findUser.role }, process.env.JWT_SECRET,
-    { expiresIn: '1d' })
+    { expiresIn: '12h' })
 
   findUser.token = token
 
   try {
     const loadToken = await UserModel.findOneAndUpdate({ username: findUser.username }, findUser)
-    return loadToken && res.status(200).json({ error: null, msg: 'user logged' })
+    return loadToken && res.status(200).json({ error: null, msg: 'user logged', token })
   } catch (error) {
     return res.status(500).json({ error: true, msg: error.message })
   }
@@ -52,8 +53,12 @@ exports.loginUser = async (req, res) => {
 exports.logoutUser = async (req, res) => {
   try {
     const userId = res.locals.id
+    const token = res.locals.token
     const findUserAndUpdate = await UserModel.findByIdAndUpdate({ _id: userId }, { $set: { token: '' } }, { new: true })
     if (!findUserAndUpdate) { return res.status(404).json({ error: true, msg: 'user not found' }) }
+    const currentDate = new Date()
+    const newRevokeToken = new TokenRevokeModel({ tokenRevoke: token, expiration: currentDate })
+    await newRevokeToken.save()
     return res.status(200).json({ error: null, msg: 'user logout' })
   } catch (error) { return res.status(500).json({ error: true, msg: error.message }) }
 }
