@@ -64,7 +64,6 @@ exports.getOnePhoto = async (req, res) => {
 }
 exports.updatePhoto = async (req, res) => {
   const { artistName, scientificName, pricesSizes, description } = req.body
-
   const files = req.files
   const errorFromExpressValidator = validationResult(req)
   if (!errorFromExpressValidator.isEmpty()) {
