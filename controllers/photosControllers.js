@@ -18,6 +18,7 @@ exports.createPhoto = async (req, res) => {
   const checkIfThePieceOfArtAlreadyExist = await PhotosModel.findOne({ artistName }, {}, { collation: { locale: 'en', strength: 1 } })
 
   if (checkIfThePieceOfArtAlreadyExist) {
+    deleteFiles(files)
     return res
       .status(400)
       .json({ error: true, msg: 'this piece of art already exist' })
@@ -100,6 +101,7 @@ exports.updatePhoto = async (req, res) => {
     }
     const checkIfThePieceOfArtAlreadyExist = await PhotosModel.findOne({ artistName }, {}, { collation: { locale: 'en', strength: 1 } })
     if (artistName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') !== oldPhotosMongoToUpdate.artistName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') && checkIfThePieceOfArtAlreadyExist) {
+      await deleteFilesFromCloudinary(orderPhotos)
       return res.status(400).json({ error: true, msg: 'this piece of art already exist' })
     }
 

@@ -1,5 +1,6 @@
 const PersonalModel = require('../models/personalSchema')
 const { singleFilePromise, cloudinary } = require('../middlewars/cloudinary')
+const { validationResult } = require('express-validator')
 const fs = require('fs-extra')
 const deleteFile = (file) => {
   fs.unlink(file.path)
@@ -10,7 +11,14 @@ exports.createPersonalInformation = async (req, res) => {
     profileDescription
   } = req.body
   const file = req.file
+  const errorFromExpressValidator = validationResult(req)
+  if (!errorFromExpressValidator.isEmpty()) {
+    deleteFile(file)
 
+    return res
+      .status(400)
+      .json({ error: true, msg: errorFromExpressValidator.array() })
+  }
   const imgProfileCloudinary = await singleFilePromise(file)
 
   try {
@@ -43,6 +51,14 @@ exports.updatePersonalInformation = async (req, res) => {
     profileDescription
   } = req.body
   const file = req.file
+  const errorFromExpressValidator = validationResult(req)
+  if (!errorFromExpressValidator.isEmpty()) {
+    deleteFile(file)
+
+    return res
+      .status(400)
+      .json({ error: true, msg: errorFromExpressValidator.array() })
+  }
   const profilePhoto = await singleFilePromise(file)
 
   try {
@@ -50,9 +66,10 @@ exports.updatePersonalInformation = async (req, res) => {
       _id: req.params.id
     })
     if (!personalInformationMongoToUpdate) {
+      await cloudinary.v2.uploader.destroy(profilePhoto.public_id)
       return res.status(404).json({ error: true, msg: 'personal information not found' })
     }
-    console.log('hola')
+
     const deleteProfilePhotoPromise = cloudinary.v2.uploader.destroy(personalInformationMongoToUpdate.profile_IMG.public_id)
     await PersonalModel.findByIdAndUpdate({ _id: req.params.id },
       {
@@ -66,6 +83,7 @@ exports.updatePersonalInformation = async (req, res) => {
     await deleteProfilePhotoPromise
     res.status(200).json({ error: null, msg: 'personal information updated' })
   } catch (error) {
+    await cloudinary.v2.uploader.destroy(profilePhoto.public_id)
     res.status(500).json({ error: true, msg: error.message })
   } finally {
     deleteFile(file)
