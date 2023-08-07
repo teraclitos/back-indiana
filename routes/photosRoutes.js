@@ -7,9 +7,11 @@ router.post(
   '/create',
   tokenValidation(process.env.SUPER_USER),
   uploadFile().uploadArrayOfImages,
-  validateEmptyFields(),
-  validateLengthFields(),
-  validatePricesSizesField(),
+  [
+    ...validateEmptyFields(),
+    ...validateLengthFields(),
+    ...validatePricesSizesField()
+  ],
   createPhoto)
 router.get(
   '/getallphotos',
@@ -21,9 +23,11 @@ router.put(
   '/updatephoto/:id',
   tokenValidation(process.env.SUPER_USER),
   uploadFile().uploadArrayOfImages,
-  validateEmptyFields(),
-  validateLengthFields(),
-  validatePricesSizesField(),
+  [
+    ...validateEmptyFields(),
+    ...validateLengthFields(),
+    ...validatePricesSizesField()
+  ],
   updatePhoto)
 router.delete(
   '/deleteonephoto/:id',

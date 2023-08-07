@@ -15,7 +15,11 @@ const validateLengthFields = () => {
   })
 }
 const validatePricesSizesField = () => {
-  return body('pricesSizes').isArray({ min: 1 }).withMessage('The pricesSizes field must be an array with a length of at least 1')
+  return [
+    body('pricesSizes').isArray({ min: 1 }).withMessage('The pricesSizes field must be an array with a length of at least 1'),
+    body('pricesSizes.*').isObject().withMessage('The priceSizes field must be an array of objects'),
+    body('pricesSizes.**.number').isNumeric().withMessage('Number must be a number'),
+    body('pricesSizes.**.size').isNumeric().withMessage('size must be a number')]
 }
 
 module.exports = { validateEmptyFields, validateLengthFields, validatePricesSizesField }

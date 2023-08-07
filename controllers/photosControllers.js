@@ -15,6 +15,14 @@ exports.createPhoto = async (req, res) => {
       .status(400)
       .json({ error: true, msg: errorFromExpressValidator.array() })
   }
+  const checkIfThePieceOfArtAlreadyExist = await PhotosModel.findOne({ artistName }, {}, { collation: { locale: 'en', strength: 1 } })
+
+  if (checkIfThePieceOfArtAlreadyExist) {
+    return res
+      .status(400)
+      .json({ error: true, msg: 'this piece of art already exist' })
+  }
+
   const orderPhotos = await filesToCloudinaryOrder(files)
   const checkOrder = checkOrderOfPhotos(orderPhotos)
   if (!checkOrder) {
