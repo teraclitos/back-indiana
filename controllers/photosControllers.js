@@ -81,6 +81,7 @@ exports.updatePhoto = async (req, res) => {
       .status(400)
       .json({ error: true, msg: errorFromExpressValidator.array() })
   }
+
   const orderPhotos = await filesToCloudinaryOrder(files)
   const checkOrder = checkOrderOfPhotos(orderPhotos)
   if (!checkOrder) {
@@ -96,6 +97,10 @@ exports.updatePhoto = async (req, res) => {
     })
     if (!oldPhotosMongoToUpdate) {
       return res.status(404).json({ error: true, msg: 'photos not found' })
+    }
+    const checkIfThePieceOfArtAlreadyExist = await PhotosModel.findOne({ artistName }, {}, { collation: { locale: 'en', strength: 1 } })
+    if (artistName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') !== oldPhotosMongoToUpdate.artistName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') && checkIfThePieceOfArtAlreadyExist) {
+      return res.status(400).json({ error: true, msg: 'this piece of art already exist' })
     }
 
     await PhotosModel.findByIdAndUpdate({ _id: req.params.id },
