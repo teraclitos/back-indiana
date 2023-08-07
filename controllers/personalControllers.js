@@ -10,7 +10,15 @@ exports.createPersonalInformation = async (req, res) => {
     profileName,
     profileDescription
   } = req.body
+
   const file = req.file
+  const checkIfThereIsAlreadyPersonalInformation = await PersonalModel.find()
+  if (checkIfThereIsAlreadyPersonalInformation.length > 0) {
+    deleteFile(file)
+    return res
+      .status(400)
+      .json({ error: true, msg: 'personal information already exist' })
+  }
   const errorFromExpressValidator = validationResult(req)
   if (!errorFromExpressValidator.isEmpty()) {
     deleteFile(file)
