@@ -2,6 +2,7 @@ const UserModel = require('../models/userSchema')
 const TokenRevokeModel = require('../models/tokenRevokeSchema')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const { validationResult } = require('express-validator')
 
 exports.createUser = async (req, res) => {
   const {
@@ -9,6 +10,18 @@ exports.createUser = async (req, res) => {
     password
 
   } = req.body
+  const checkIfThereIsAlreadyThereIsaUser = await UserModel.find()
+  if (checkIfThereIsAlreadyThereIsaUser.length > 0) {
+    return res
+      .status(400)
+      .json({ error: true, msg: 'user already exist' })
+  }
+  const errorFromExpressValidator = validationResult(req)
+  if (!errorFromExpressValidator.isEmpty()) {
+    return res
+      .status(400)
+      .json({ error: true, msg: errorFromExpressValidator.array() })
+  }
 
   const salt = await bcrypt.genSalt()
   const hash = await bcrypt.hash(password, salt)
@@ -28,6 +41,12 @@ exports.createUser = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
   const { username, password } = req.body
+  const errorFromExpressValidator = validationResult(req)
+  if (!errorFromExpressValidator.isEmpty()) {
+    return res
+      .status(400)
+      .json({ error: true, msg: errorFromExpressValidator.array() })
+  }
 
   const findUser = await UserModel.findOne({ username })
   const passwordOk = findUser && await bcrypt.compare(password, findUser.password)
