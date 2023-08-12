@@ -1,12 +1,15 @@
 const router = require('express').Router()
 const tokenValidation = require('../middlewars/auth')
 const { validateEmptyFields, validateLengthFields, validatePricesSizesField } = require('../validations/validationPhotos')
-const { createPhoto, getAllPhotos, getOnePhoto, deleteOnePhoto, updatePhoto } = require('../controllers/photosControllers')
-const { uploadFile } = require('../middlewars/multer')
+const { createPhoto, getAllPhotos, getOnePhoto, deletePhoto, updatePhoto } = require('../controllers/photosControllers')
+const { uploadFile, handleMulterErrors } = require('../middlewars/multer')
+
 router.post(
   '/create',
   tokenValidation(process.env.SUPER_USER),
+
   uploadFile().uploadArrayOfImages,
+  handleMulterErrors,
   [
     ...validateEmptyFields(),
     ...validateLengthFields(),
@@ -21,8 +24,10 @@ router.get(
   getOnePhoto)
 router.put(
   '/updatephoto/:id',
+
   tokenValidation(process.env.SUPER_USER),
   uploadFile().uploadArrayOfImages,
+  handleMulterErrors,
   [
     ...validateEmptyFields(),
     ...validateLengthFields(),
@@ -30,7 +35,7 @@ router.put(
   ],
   updatePhoto)
 router.delete(
-  '/deleteonephoto/:id',
+  '/deletephoto/:id',
   tokenValidation(process.env.SUPER_USER),
-  deleteOnePhoto)
+  deletePhoto)
 module.exports = router

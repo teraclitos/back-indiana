@@ -3,11 +3,11 @@ const cloudinary = require('cloudinary')
 const photoEdition = {
   folder: 'photo-bioteil',
   transformation: {
-    width: 700,
-    height: 700,
+    // width: 700,
+    // height: 700,
     crop: 'fill',
     fetch_format: 'auto',
-    quality: 'auto',
+    quality: 100,
     gravity: 'auto'
   }
 }

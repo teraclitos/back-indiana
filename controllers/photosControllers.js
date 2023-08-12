@@ -6,6 +6,12 @@ const { validationResult } = require('express-validator')
 exports.createPhoto = async (req, res) => {
   const { artistName, scientificName, pricesSizes, description } = req.body
   const files = req.files
+  if (files.length < 2) {
+    deleteFiles(files)
+    return res
+      .status(400)
+      .json({ error: true, msg: 'you must send at least 2 files' })
+  }
 
   const errorFromExpressValidator = validationResult(req)
   if (!errorFromExpressValidator.isEmpty()) {
@@ -74,6 +80,12 @@ exports.getOnePhoto = async (req, res) => {
 exports.updatePhoto = async (req, res) => {
   const { artistName, scientificName, pricesSizes, description } = req.body
   const files = req.files
+  if (files.length < 2) {
+    deleteFiles(files)
+    return res
+      .status(400)
+      .json({ error: true, msg: 'you must send at least 2 files' })
+  }
   const errorFromExpressValidator = validationResult(req)
   if (!errorFromExpressValidator.isEmpty()) {
     deleteFiles(files)
@@ -125,7 +137,7 @@ exports.updatePhoto = async (req, res) => {
     deleteFiles(files)
   }
 }
-exports.deleteOnePhoto = async (req, res) => {
+exports.deletePhoto = async (req, res) => {
   try {
     const photosMongoDeleted = await PhotosModel.findByIdAndDelete({
       _id: req.params.id

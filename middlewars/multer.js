@@ -11,29 +11,44 @@ if (process.env.NODE_ENV === 'production') {
 
 const uploadFile = () => {
   const storage = multer.diskStorage({
-    fileFilter: (req, file, cb) => {
-      const filetypes = '/jpeg|png|jpg/'
-      console.log(file)
 
-      const mimetypes = filetypes.test(file.mimetype.toLowerCase())
-      const extname = filetypes.test(
-        path.extname(file.originalname).toLowerCase()
-      )
-      if (mimetypes && extname) {
-        return cb(null, true)
-      } else {
-        return ('error: incorrect format of the image ')
-      }
-    },
     destination: path.join(__dirname, folder),
+
     filename: (req, file, cb) => {
       cb(null, uuidv4() + path.extname(file.originalname))
     }
   })
-  const uploadOneImage = multer({ storage }).single('image')
-  const uploadArrayOfImages = multer({ storage }).array('images')
 
+  const fileFilter = (req, file, cb) => {
+    const allowedExtensions = ['.jpeg', '.jpg', '.png']
+    const extname = path.extname(file.originalname).toLowerCase()
+    if (allowedExtensions.includes(extname)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Incorrect format of the image'))
+    }
+  }
+
+  const limits = {
+    files: 2
+  }
+  const uploadOneImage = multer({ storage, fileFilter }).single('image')
+  const uploadArrayOfImages = multer({
+    storage,
+    fileFilter,
+    limits
+  }).array('images')
   return { uploadArrayOfImages, uploadOneImage }
 }
+const errFormatImages = 'Incorrect format of the image'
+const handleMulterErrors = (err, req, res, next) => {
+  if (err instanceof multer.MulterError || err.message === errFormatImages) {
+    return res.status(400).json({ error: true, msg: err.message })
+  } else if (err) {
+    return res.status(500).json({ error: true, msg: err.message })
+  }
 
-module.exports = { uploadFile }
+  next()
+}
+
+module.exports = { uploadFile, handleMulterErrors }
