@@ -8,31 +8,31 @@ const validateEmptyFields = () => {
 const validateLengthFields = () => {
   return photosFields.map((field) => {
     if (field !== 'description') {
-      return body(field).trim().isLength({ min: 5, max: 20 }).withMessage(`the field ${field} must have from 5 to 20 characters`)
+      return body(field).trim().isLength({ min: 5, max: 40 }).withMessage(`the field ${field} must have from 5 to 20 characters`)
     } else {
-      return body(field).trim().isLength({ min: 8 }).withMessage(`the field ${field} must have at least 8 characters`)
+      return body(field).trim().isLength({ min: 8, max: 1000 }).withMessage(`the field ${field} must have at least 8 characters`)
     }
   })
 }
-const validatePricesSizesField = () => {
+const validateItems = () => {
   return [
     (req, res, next) => {
-      const parsedData = JSON.parse(req.body.pricesSizes)
+      const parsedData = JSON.parse(req.body.items)
 
-      req.body.pricesSizes = parsedData
+      req.body.items = parsedData
 
       next()
     },
-    body('pricesSizes').isArray({ min: 1 }).withMessage('The pricesSizes field must be an array with a length of at least 1'),
-    body('pricesSizes.*').isObject().withMessage('The priceSizes field must be an array of objects'),
-    body('pricesSizes.*.size').exists().withMessage('there is no size'),
-    body('pricesSizes.*.size').isObject().withMessage('size must be an Object'),
-    body('pricesSizes.*.price').exists().withMessage('there is no price'),
-    body('pricesSizes.*.price').isNumeric().withMessage('price must be a number'),
-    body('pricesSizes.*.size.width').exists().withMessage('there is no width'),
-    body('pricesSizes.*.size.height').exists().withMessage('there is no heigh'),
-    body('pricesSizes.**.width').isNumeric().withMessage('width must be a number'),
-    body('pricesSizes.**.height').isNumeric().withMessage('height must be a number')]
+    body('items').isArray({ min: 1 }).withMessage('The items field must be an array with a length of at least 1'),
+    body('items.*').isObject().withMessage('The items field must be an array of objects'),
+    body('items.*.size').exists().withMessage('there is no size'),
+    body('items.*.size').isObject().withMessage('size must be an Object'),
+    body('items.*.price').exists().withMessage('there is no price'),
+    body('items.*.price').isNumeric().withMessage('price must be a number'),
+    body('items.*.size.width').exists().withMessage('there is no width'),
+    body('items.*.size.height').exists().withMessage('there is no heigh'),
+    body('items.**.width').isNumeric().withMessage('width must be a number'),
+    body('items.**.height').isNumeric().withMessage('height must be a number')]
 }
 
-module.exports = { validateEmptyFields, validateLengthFields, validatePricesSizesField }
+module.exports = { validateEmptyFields, validateLengthFields, validateItems }

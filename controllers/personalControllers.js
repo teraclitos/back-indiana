@@ -12,6 +12,11 @@ exports.createPersonalInformation = async (req, res) => {
   } = req.body
 
   const file = req.file
+  if (!file) {
+    return res
+      .status(400)
+      .json({ error: true, msg: 'you must send a photo' })
+  }
   const checkIfThereIsAlreadyPersonalInformation = await PersonalModel.find()
   if (checkIfThereIsAlreadyPersonalInformation.length > 0) {
     deleteFile(file)
@@ -25,7 +30,7 @@ exports.createPersonalInformation = async (req, res) => {
 
     return res
       .status(400)
-      .json({ error: true, msg: errorFromExpressValidator.array() })
+      .json({ error: true, msg: errorFromExpressValidator.array()[0].msg })
   }
   const imgProfileCloudinary = await singleFilePromise(file)
 
@@ -59,13 +64,18 @@ exports.updatePersonalInformation = async (req, res) => {
     profileDescription
   } = req.body
   const file = req.file
+  if (!file) {
+    return res
+      .status(400)
+      .json({ error: true, msg: 'you must send a photo' })
+  }
   const errorFromExpressValidator = validationResult(req)
   if (!errorFromExpressValidator.isEmpty()) {
     deleteFile(file)
 
     return res
       .status(400)
-      .json({ error: true, msg: errorFromExpressValidator.array() })
+      .json({ error: true, msg: errorFromExpressValidator.array()[0].msg })
   }
   const profilePhoto = await singleFilePromise(file)
 

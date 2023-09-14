@@ -50,3 +50,24 @@ const singleFilePromise = async (file) => {
 }
 const deleteFilesFromCloudinary = async (arrayOfFilesToBeDeletedPromises) => { arrayOfFilesToBeDeletedPromises.map(photo => cloudinary.v2.uploader.destroy(photo.public_id)); await Promise.all(arrayOfFilesToBeDeletedPromises) }
 module.exports = { newArrayPhotosCloudinaryFunction, cloudinary, singleFilePromise, deleteFilesFromCloudinary }
+// function checkConcurrencyCartDataFunction (cart, data) {
+//   const conflicts = []
+
+//   // Create a map of cart items based on a unique identifier (e.g., product ID)
+//   const cartItemMap = new Map(cart.map((item) => [item._id, { price: item.pricesSizes.price }]))
+//   console.log(cartItemMap); const dataItems = data.map((item) => { return item.pricesSizes.map((item) => { return { _id: item.id, price: item.price } }) }); const dataIdPrices = dataItems.flat()
+//   // Check for conflicts and differences in attributes
+//   dataIdPrices.forEach((serverItem) => {
+//     const cartItem = cartItemMap.get(serverItem._id)
+//     if (cartItem) {
+//       if (serverItem.price !== cartItem.price) {
+//         conflicts.push({
+//           item: serverItem,
+//           reason: 'Price or availability mismatch'
+//         })
+//       }
+//     }
+//   })
+
+//   return conflicts
+// }

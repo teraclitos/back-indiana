@@ -20,7 +20,7 @@ exports.createUser = async (req, res) => {
   if (!errorFromExpressValidator.isEmpty()) {
     return res
       .status(400)
-      .json({ error: true, msg: errorFromExpressValidator.array() })
+      .json({ error: true, msg: errorFromExpressValidator.array()[0].msg })
   }
 
   const salt = await bcrypt.genSalt()
@@ -41,11 +41,12 @@ exports.createUser = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
   const { username, password } = req.body
+
   const errorFromExpressValidator = validationResult(req)
   if (!errorFromExpressValidator.isEmpty()) {
     return res
       .status(400)
-      .json({ error: true, msg: errorFromExpressValidator.array() })
+      .json({ error: true, msg: errorFromExpressValidator.array()[0].msg })
   }
 
   const findUser = await UserModel.findOne({ username })

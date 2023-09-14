@@ -4,7 +4,7 @@ const { deleteFiles, filesToCloudinaryOrder, checkOrderOfPhotos } = require('../
 const { validationResult } = require('express-validator')
 
 exports.createPhoto = async (req, res) => {
-  const { artistName, scientificName, pricesSizes, description } = req.body
+  const { artistName, scientificName, items, description } = req.body
   const files = req.files
   if (files.length < 2) {
     deleteFiles(files)
@@ -19,7 +19,7 @@ exports.createPhoto = async (req, res) => {
 
     return res
       .status(400)
-      .json({ error: true, msg: errorFromExpressValidator.array() })
+      .json({ error: true, msg: errorFromExpressValidator.array()[0].msg })
   }
   const checkIfThePieceOfArtAlreadyExist = await PhotosModel.findOne({ artistName }, {}, { collation: { locale: 'en', strength: 1 } })
 
@@ -44,7 +44,7 @@ exports.createPhoto = async (req, res) => {
     const newPhoto = new PhotosModel({
       artistName,
       scientificName,
-      pricesSizes,
+      items,
       description,
       photos_URL: orderPhotos
     })
@@ -78,7 +78,7 @@ exports.getOnePhoto = async (req, res) => {
   }
 }
 exports.updatePhoto = async (req, res) => {
-  const { artistName, scientificName, pricesSizes, description } = req.body
+  const { artistName, scientificName, items, description } = req.body
   const files = req.files
   if (files.length < 2) {
     deleteFiles(files)
@@ -92,7 +92,7 @@ exports.updatePhoto = async (req, res) => {
 
     return res
       .status(400)
-      .json({ error: true, msg: errorFromExpressValidator.array() })
+      .json({ error: true, msg: errorFromExpressValidator.array()[0].msg })
   }
 
   const orderPhotos = await filesToCloudinaryOrder(files)
@@ -121,7 +121,7 @@ exports.updatePhoto = async (req, res) => {
       {
         artistName,
         scientificName,
-        pricesSizes,
+        items,
         description,
         photos_URL: orderPhotos
 

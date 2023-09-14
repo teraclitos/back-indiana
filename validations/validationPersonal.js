@@ -10,7 +10,7 @@ const validateLengthFields = () => {
     if (field !== 'profileDescription') {
       return body(field).trim().isLength({ min: 5, max: 20 }).withMessage(`the field ${field} must have from 5 to 20 characters`)
     } else {
-      return body(field).trim().isLength({ min: 8 }).withMessage(`the field ${field} must have at least 8 characters`)
+      return body(field).trim().isLength({ min: 8, max: 1000 }).withMessage(`the field ${field} must have at least 8 characters`)
     }
   })
 }
