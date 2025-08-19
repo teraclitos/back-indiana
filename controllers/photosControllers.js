@@ -1,155 +1,274 @@
 const PhotosModel = require('../models/photosSchema')
 const { deleteFilesFromCloudinary } = require('../middlewars/cloudinary')
-const { deleteFiles, filesToCloudinaryOrder, checkOrderOfPhotos } = require('../services/functionsPhotos')
-const { validationResult } = require('express-validator')
+const { deleteFiles } = require('../services/functionsPhotos')
+// const { validationResult } = require('express-validator')
+const { newArrayPhotosCloudinaryFunction } = require('../middlewars/cloudinary')
+
+const flattenFiles = (filesObject) => {
+  return Object.values(filesObject).flat()
+}
+
+// Helpers
+const REQUIRED_PHOTOS = [
+  'fotoFrontal',
+  'fotoTrasera',
+  'fotoLateralIzquierda',
+  'fotoLateralDerecha',
+  'fotoInterior'
+]
+
+const extractPublicIdsFromCarDoc = (carDoc) => {
+  if (!carDoc) return []
+  return REQUIRED_PHOTOS
+    .map(k => carDoc[k]?.public_id)
+    .filter(Boolean)
+}
 
 exports.createPhoto = async (req, res) => {
-  const { artistName, scientificName, items, description } = req.body
-  const files = req.files
-  if (files.length < 2) {
-    deleteFiles(files)
-    return res
-      .status(400)
-      .json({ error: true, msg: 'you must send at least 2 files' })
-  }
+  // CAMPOS ORIGINALES + NUEVOS (anio, combustible, transmision, kilometraje, traccion, tapizado, categoriaVehiculo, frenos, turbo, llantas, HP, detalle)
+  const {
+    marca, modelo, version, precio, caja, segmento, cilindrada, color,
+    anio, combustible, transmision, kilometraje, traccion, tapizado,
+    categoriaVehiculo, frenos, turbo, llantas, HP, detalle
+  } = req.body
+  const files = req.files || {}
+  const missingPhotos = REQUIRED_PHOTOS.filter(field => !files[field] || files[field].length === 0)
 
-  const errorFromExpressValidator = validationResult(req)
-  if (!errorFromExpressValidator.isEmpty()) {
-    deleteFiles(files)
-
-    return res
-      .status(400)
-      .json({ error: true, msg: errorFromExpressValidator.array()[0].msg })
-  }
-  const checkIfThePieceOfArtAlreadyExist = await PhotosModel.findOne({ artistName }, {}, { collation: { locale: 'en', strength: 1 } })
-
-  if (checkIfThePieceOfArtAlreadyExist) {
-    deleteFiles(files)
-    return res
-      .status(400)
-      .json({ error: true, msg: 'this piece of art already exist' })
-  }
-
-  const orderPhotos = await filesToCloudinaryOrder(files)
-  const checkOrder = checkOrderOfPhotos(orderPhotos)
-  if (!checkOrder) {
-    deleteFiles(files)
-    await deleteFilesFromCloudinary(orderPhotos)
-    return res
-      .status(400)
-      .json({ error: true, msg: 'The order of the photos is incorrect' })
-  }
-
-  try {
-    const newPhoto = new PhotosModel({
-      artistName,
-      scientificName,
-      items,
-      description,
-      photos_URL: orderPhotos
+  if (missingPhotos.length > 0) {
+    deleteFiles(flattenFiles(files))
+    return res.status(400).json({
+      error: true,
+      msg: `Faltan las siguientes fotos: ${missingPhotos.join(', ')}`
     })
-    await newPhoto.save()
-    res.status(201).json({ error: null, msg: 'Photo created correctly' })
+  }
+
+  const filesArray = flattenFiles(files)
+
+  // // Si usas express-validator, descomenta:
+  // const errorFromExpressValidator = validationResult(req);
+  // if (!errorFromExpressValidator.isEmpty()) {
+  //   deleteFiles(filesArray);
+  //   return res.status(400).json({ error: true, msg: errorFromExpressValidator.array()[0].msg });
+  // }
+
+  // Único por marca+modelo+versión (case/accents insensitive)
+  const carExists = await PhotosModel.findOne(
+    { marca, modelo, version },
+    {},
+    { collation: { locale: 'es', strength: 1 } }
+  )
+  if (carExists) {
+    deleteFiles(filesArray)
+    return res.status(400).json({ error: true, msg: 'Este auto ya está registrado' })
+  }
+
+  let cloudinaryResults
+  try {
+    cloudinaryResults = await newArrayPhotosCloudinaryFunction(filesArray)
+
+    // Mismo mapeo que en create original: usar fieldName para las claves
+    const carPhotos = cloudinaryResults.reduce((acc, photo) => {
+      const key = photo.fieldName // <-- congruente con create
+      acc[key] = {
+        url: photo.url,
+        public_id: photo.public_id,
+        original_name: photo.original_name
+      }
+      return acc
+    }, {})
+
+    const newCar = new PhotosModel({
+      ...carPhotos,
+      marca,
+      modelo,
+      version,
+      precio,
+      caja,
+      segmento,
+      cilindrada,
+      color,
+      // NUEVOS
+      anio,
+      combustible,
+      transmision,
+      kilometraje,
+      traccion,
+      tapizado,
+      categoriaVehiculo,
+      frenos,
+      turbo,
+      llantas,
+      HP,
+      detalle
+    })
+
+    await newCar.save()
+    res.status(201).json({ error: null, msg: 'Auto creado correctamente' })
   } catch (error) {
-    await deleteFilesFromCloudinary(orderPhotos)
+    if (cloudinaryResults && cloudinaryResults.length) {
+      // revierte subidas a Cloudinary si falló la persistencia
+      await deleteFilesFromCloudinary(cloudinaryResults.map(p => p.public_id))
+    }
     res.status(500).json({ error: true, msg: error.message })
   } finally {
-    deleteFiles(files)
+    deleteFiles(filesArray)
   }
 }
+
+exports.updatePhoto = async (req, res) => {
+  // Debe ser congruente con create: exigir las 5 fotos y el mismo mapeo
+  const {
+    marca, modelo, version, precio, caja, segmento, cilindrada, color,
+    anio, combustible, transmision, kilometraje, traccion, tapizado,
+    categoriaVehiculo, frenos, turbo, llantas, HP, detalle
+  } = req.body
+
+  const files = req.files || {}
+  const filesArray = flattenFiles(files)
+
+  // Requerir las 5 fotos igual que en create
+  const missingPhotos = REQUIRED_PHOTOS.filter(field => !files[field] || files[field].length === 0)
+  if (missingPhotos.length > 0) {
+    deleteFiles(filesArray)
+    return res.status(400).json({
+      error: true,
+      msg: `Faltan las siguientes fotos: ${missingPhotos.join(', ')}`
+    })
+  }
+
+  // // Si usas express-validator, descomenta:
+  // const errorFromExpressValidator = validationResult(req);
+  // if (!errorFromExpressValidator.isEmpty()) {
+  //   deleteFiles(filesArray);
+  //   return res.status(400).json({ error: true, msg: errorFromExpressValidator.array()[0].msg });
+  // }
+
+  let oldPhoto = null
+  let newUploads = null
+
+  try {
+    oldPhoto = await PhotosModel.findById(req.params.id)
+    if (!oldPhoto) {
+      deleteFiles(filesArray)
+      return res.status(404).json({ error: true, msg: 'Auto no encontrado' })
+    }
+
+    // Validar unicidad si cambia marca+modelo+versión
+    const carExists = await PhotosModel.findOne(
+      { marca, modelo, version },
+      {},
+      { collation: { locale: 'es', strength: 1 } }
+    )
+
+    const isSameCar =
+      (marca + modelo + version)
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() ===
+      (oldPhoto.marca + oldPhoto.modelo + oldPhoto.version)
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+    if (!isSameCar && carExists) {
+      deleteFiles(filesArray)
+      return res.status(400).json({ error: true, msg: 'Este auto ya está registrado' })
+    }
+
+    // Subir nuevas fotos (congruente con create)
+    newUploads = await newArrayPhotosCloudinaryFunction(filesArray)
+
+    // Mismo mapeo que create: usar fieldName
+    const carPhotos = newUploads.reduce((acc, photo) => {
+      const key = photo.fieldName
+      acc[key] = {
+        url: photo.url,
+        public_id: photo.public_id,
+        original_name: photo.original_name
+      }
+      return acc
+    }, {})
+
+    // Actualizar documento
+    const updated = await PhotosModel.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...carPhotos,
+        marca,
+        modelo,
+        version,
+        precio,
+        caja,
+        segmento,
+        cilindrada,
+        color,
+        // NUEVOS
+        anio,
+        combustible,
+        transmision,
+        kilometraje,
+        traccion,
+        tapizado,
+        categoriaVehiculo,
+        frenos,
+        turbo,
+        llantas,
+        HP,
+        detalle
+      },
+      { new: true }
+    )
+
+    // Borrar fotos antiguas de Cloudinary solo si el update fue OK
+    const oldPublicIds = extractPublicIdsFromCarDoc(oldPhoto)
+    if (oldPublicIds.length) {
+      await deleteFilesFromCloudinary(oldPublicIds)
+    }
+
+    res.status(200).json({ error: null, msg: 'Auto actualizado correctamente', updated })
+  } catch (error) {
+    // Si falló luego de subir nuevas, borra nuevas para no dejar basura
+    if (newUploads && newUploads.length) {
+      await deleteFilesFromCloudinary(newUploads.map(p => p.public_id))
+    }
+    res.status(500).json({ error: true, msg: error.message })
+  } finally {
+    deleteFiles(filesArray)
+  }
+}
+
 exports.getAllPhotos = async (req, res) => {
-  const { page, limit } = req.query
-  const parsedPage = parseInt(page) || 1
+  const { cursor, limit } = req.query
+  const parsedCursor = parseInt(cursor) || 1
   const parsedLimit = parseInt(limit) || 8
   try {
-    const allPhotos = await PhotosModel.paginate({}, { page: parsedPage, limit: parsedLimit })
-
+    const allPhotos = await PhotosModel.paginate({}, { page: parsedCursor, limit: parsedLimit })
     res.status(200).json({ error: null, allPhotos })
   } catch (error) {
     res.status(500).json({ error: true, msg: error.message })
   }
 }
+
 exports.getOnePhoto = async (req, res) => {
   try {
-    const getOnePhoto = await PhotosModel.findOne({ _id: req.params.id.trim() })
+    const getOnePhoto = await PhotosModel.findById(req.params.id.trim())
     res.status(200).json({ error: null, getOnePhoto })
   } catch (error) {
     res.status(500).json({ error: true, msg: error.message })
   }
 }
-exports.updatePhoto = async (req, res) => {
-  const { artistName, scientificName, items, description } = req.body
-  const files = req.files
-  if (files.length < 2) {
-    deleteFiles(files)
-    return res
-      .status(400)
-      .json({ error: true, msg: 'you must send at least 2 files' })
-  }
-  const errorFromExpressValidator = validationResult(req)
-  if (!errorFromExpressValidator.isEmpty()) {
-    deleteFiles(files)
 
-    return res
-      .status(400)
-      .json({ error: true, msg: errorFromExpressValidator.array()[0].msg })
-  }
-
-  const orderPhotos = await filesToCloudinaryOrder(files)
-  const checkOrder = checkOrderOfPhotos(orderPhotos)
-  if (!checkOrder) {
-    await deleteFilesFromCloudinary(orderPhotos)
-    deleteFiles(files)
-    return res
-      .status(400)
-      .json({ error: true, msg: 'The order of the photos is incorrect' })
-  }
-  try {
-    const oldPhotosMongoToUpdate = await PhotosModel.findById({
-      _id: req.params.id
-    })
-    if (!oldPhotosMongoToUpdate) {
-      return res.status(404).json({ error: true, msg: 'photos not found' })
-    }
-    const checkIfThePieceOfArtAlreadyExist = await PhotosModel.findOne({ artistName }, {}, { collation: { locale: 'en', strength: 1 } })
-    if (artistName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') !== oldPhotosMongoToUpdate.artistName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') && checkIfThePieceOfArtAlreadyExist) {
-      await deleteFilesFromCloudinary(orderPhotos)
-      return res.status(400).json({ error: true, msg: 'this piece of art already exist' })
-    }
-
-    await PhotosModel.findByIdAndUpdate({ _id: req.params.id },
-      {
-        artistName,
-        scientificName,
-        items,
-        description,
-        photos_URL: orderPhotos
-
-      },
-      { new: true })
-
-    await deleteFilesFromCloudinary(oldPhotosMongoToUpdate.photos_URL)
-    res.status(200).json({ error: null, msg: 'photos updated' })
-  } catch (error) {
-    await deleteFilesFromCloudinary(orderPhotos)
-    res.status(500).json({ error: true, msg: error.message })
-  } finally {
-    deleteFiles(files)
-  }
-}
 exports.deletePhoto = async (req, res) => {
   try {
-    const photosMongoDeleted = await PhotosModel.findByIdAndDelete({
-      _id: req.params.id
-    })
-    if (!photosMongoDeleted) {
-      return res.status(404).json({ error: true, msg: 'photos not found' })
+    const photoDeleted = await PhotosModel.findByIdAndDelete(req.params.id)
+    if (!photoDeleted) {
+      return res.status(404).json({ error: true, msg: 'Auto no encontrado' })
     }
 
-    await deleteFilesFromCloudinary(photosMongoDeleted.photos_URL)
+    // Borrar fotos de Cloudinary del documento eliminado
+    const publicIds = extractPublicIdsFromCarDoc(photoDeleted)
+    if (publicIds.length) {
+      await deleteFilesFromCloudinary(publicIds)
+    }
 
-    res.status(200).json({ error: null, msg: 'photos deleted' })
+    res.status(200).json({ error: null, msg: 'Auto eliminado correctamente' })
   } catch (error) {
-    res.status(500).json({ msg: error.message })
+    res.status(500).json({ error: true, msg: error.message })
   }
 }
