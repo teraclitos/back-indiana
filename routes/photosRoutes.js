@@ -26,7 +26,7 @@ router.put(
   '/updatephoto/:id',
 
   tokenValidation(process.env.SUPER_USER),
-  uploadFile().uploadArrayOfImages,
+  uploadFile().uploadCarPhotos,
   handleMulterErrors,
   // [
   //   ...validateEmptyFields(),

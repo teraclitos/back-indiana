@@ -29,7 +29,7 @@ exports.createPhoto = async (req, res) => {
   const {
     marca, modelo, version, precio, caja, segmento, cilindrada, color,
     anio, combustible, transmision, kilometraje, traccion, tapizado,
-    categoriaVehiculo, frenos, turbo, llantas, HP, detalle
+    categoriaVehiculo, frenos, turbo, llantas, HP, detalle, highlighted = 'fotoFrontal'
   } = req.body
   const files = req.files || {}
   const missingPhotos = REQUIRED_PHOTOS.filter(field => !files[field] || files[field].length === 0)
@@ -72,7 +72,8 @@ exports.createPhoto = async (req, res) => {
       acc[key] = {
         url: photo.url,
         public_id: photo.public_id,
-        original_name: photo.original_name
+        original_name: photo.original_name,
+        highlighted: key === highlighted
       }
       return acc
     }, {})
@@ -99,7 +100,8 @@ exports.createPhoto = async (req, res) => {
       turbo,
       llantas,
       HP,
-      detalle
+      detalle,
+      highlighted
     })
 
     await newCar.save()
@@ -117,10 +119,11 @@ exports.createPhoto = async (req, res) => {
 
 exports.updatePhoto = async (req, res) => {
   // Debe ser congruente con create: exigir las 5 fotos y el mismo mapeo
+  console.log('Updating photos for car:', req)
   const {
     marca, modelo, version, precio, caja, segmento, cilindrada, color,
     anio, combustible, transmision, kilometraje, traccion, tapizado,
-    categoriaVehiculo, frenos, turbo, llantas, HP, detalle
+    categoriaVehiculo, frenos, turbo, llantas, HP, detalle, highlighted = 'fotoFrontal'
   } = req.body
 
   const files = req.files || {}
@@ -177,10 +180,12 @@ exports.updatePhoto = async (req, res) => {
     // Mismo mapeo que create: usar fieldName
     const carPhotos = newUploads.reduce((acc, photo) => {
       const key = photo.fieldName
+      console.log({ key, highlighted })
       acc[key] = {
         url: photo.url,
         public_id: photo.public_id,
-        original_name: photo.original_name
+        original_name: photo.original_name,
+        highlighted: key === highlighted
       }
       return acc
     }, {})
@@ -210,7 +215,8 @@ exports.updatePhoto = async (req, res) => {
         turbo,
         llantas,
         HP,
-        detalle
+        detalle,
+        highlighted
       },
       { new: true }
     )
@@ -235,16 +241,64 @@ exports.updatePhoto = async (req, res) => {
 
 exports.getAllPhotos = async (req, res) => {
   const { cursor, limit } = req.query
-  const parsedCursor = parseInt(cursor) || 1
-  const parsedLimit = parseInt(limit) || 8
+  const parsedCursor = parseInt(cursor, 10) || 1
+  const parsedLimit = parseInt(limit, 10) || 8
+
+  const parseArray = (v) => {
+    if (!v) return []
+    return String(v).split(',').map(s => s.trim()).filter(Boolean)
+  }
+
+  const parseRange = (v) => {
+    if (!v) return null
+    const parts = String(v).split(',').map(s => s.trim())
+    if (parts.length >= 2) {
+      const min = Number(parts[0])
+      const max = Number(parts[1])
+      if (!isNaN(min) && !isNaN(max)) return [min, max]
+    }
+    return null
+  }
+
   try {
-    const allPhotos = await PhotosModel.paginate({}, { page: parsedCursor, limit: parsedLimit })
+    // Filtros desde query
+    const marcas = parseArray(req.query.marca) // ej: ?marca=Toyota,Ford
+    const cajas = parseArray(req.query.caja) // ej: ?caja=Manual,Automática
+    const combustibles = parseArray(req.query.combustible) // ej: ?combustible=Nafta,Gasoil
+    const kmRange = parseRange(req.query.km) // ej: ?km=0,50000
+    const precioRange = parseRange(req.query.precio) // ej: ?precio=2000000,5000000
+    const anioRange = parseRange(req.query.anio) // ej: ?anio=2015,2024
+
+    console.log({ marcas, cajas, combustibles, kmRange, precioRange, anioRange })
+
+    // Construir filtro dinámico
+    const filter = {}
+    if (marcas.length) filter.marca = { $in: marcas }
+    if (cajas.length) filter.caja = { $in: cajas }
+    if (combustibles.length) filter.combustible = { $in: combustibles }
+    if (kmRange) {
+      const [minKm, maxKm] = kmRange
+      filter.kilometraje = { $gte: minKm, $lte: maxKm }
+    }
+    if (precioRange) {
+      const [minP, maxP] = precioRange
+      filter.precio = { $gte: minP, $lte: maxP }
+    }
+    if (anioRange) {
+      const [minY, maxY] = anioRange
+      filter.anio = { $gte: minY, $lte: maxY }
+    }
+
+    const allPhotos = await PhotosModel.paginate(
+      filter,
+      { page: parsedCursor, limit: parsedLimit, sort: { createdAt: -1 }, collation: { locale: 'es', strength: 1 } }
+    )
+
     res.status(200).json({ error: null, allPhotos })
   } catch (error) {
     res.status(500).json({ error: true, msg: error.message })
   }
 }
-
 exports.getOnePhoto = async (req, res) => {
   try {
     const getOnePhoto = await PhotosModel.findById(req.params.id.trim())

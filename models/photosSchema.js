@@ -4,7 +4,8 @@ const mongoosePagination = require('mongoose-paginate-v2')
 const ImageSchema = new mongoose.Schema({
   url: { type: String, required: true },
   original_name: { type: String, required: true },
-  public_id: { type: String, required: true }
+  public_id: { type: String, required: true },
+  highlighted: { type: Boolean, default: false }
 }, { _id: false })
 
 const PhotosSchema = new mongoose.Schema({
@@ -32,7 +33,8 @@ const PhotosSchema = new mongoose.Schema({
   turbo: { type: String, required: true },
   llantas: { type: String, required: true },
   HP: { type: String, required: true },
-  detalle: { type: String, required: true }
+  detalle: { type: String, required: true },
+  highlighted: { type: String, default: 'fotoFrontal' }
 }, {
   timestamps: true
 })

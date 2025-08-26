@@ -18,7 +18,7 @@ const tokenValidation = (roleAuth) => async (req, res, next) => {
     if (isTokenRevoke) {
       return res.status(401).json({ error: true, msg: 'token revoked' })
     }
-
+    console.log(role, roleAuth)
     if (role !== roleAuth) {
       return res.status(401).json({ error: true, msg: 'you have no authorization' })
     }
