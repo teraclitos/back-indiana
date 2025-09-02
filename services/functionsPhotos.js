@@ -1,9 +1,14 @@
 const fs = require('fs-extra')
 const deleteFiles = (files) => {
   for (const file of files) {
-    fs.unlink(file.path)
+    if (Array.isArray(file)) {
+      for (const f of file) {
+        fs.unlink(f.path)
+      }
+    } else {
+      fs.unlink(file.path)
+    }
   }
 }
 
-
-module.exports = { deleteFiles}
+module.exports = { deleteFiles }

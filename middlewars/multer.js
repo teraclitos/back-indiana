@@ -28,22 +28,23 @@ const uploadFile = () => {
   }
 
   const limits = {
-    files: 5 // ahora se permiten 5 archivos
+    files: 20 // ahora se permiten 20 archivos
   }
 
   const uploadOneImage = multer({ storage, fileFilter }).single('image')
 
-  const uploadArrayOfImages = multer({ storage, fileFilter, limits }).array('images')
+  const uploadExtraPhotos = multer({ storage, fileFilter, limits }).array('extraPhotos')
 
   const uploadCarPhotos = multer({ storage, fileFilter, limits }).fields([
     { name: 'fotoFrontal', maxCount: 1 },
     { name: 'fotoTrasera', maxCount: 1 },
     { name: 'fotoLateralIzquierda', maxCount: 1 },
     { name: 'fotoLateralDerecha', maxCount: 1 },
-    { name: 'fotoInterior', maxCount: 1 }
+    { name: 'fotoInterior', maxCount: 1 },
+    { name: 'fotosExtra' }
   ])
 
-  return { uploadArrayOfImages, uploadOneImage, uploadCarPhotos }
+  return { uploadExtraPhotos, uploadOneImage, uploadCarPhotos }
 }
 
 const errFormatImages = 'Incorrect format of the image'

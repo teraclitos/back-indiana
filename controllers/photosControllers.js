@@ -69,11 +69,20 @@ exports.createPhoto = async (req, res) => {
     // Mismo mapeo que en create original: usar fieldName para las claves
     const carPhotos = cloudinaryResults.reduce((acc, photo) => {
       const key = photo.fieldName // <-- congruente con create
-      acc[key] = {
-        url: photo.url,
-        public_id: photo.public_id,
-        original_name: photo.original_name,
-        highlighted: key === highlighted
+      if (!acc[key]) {
+        acc[key] = {
+          url: photo.url,
+          public_id: photo.public_id,
+          original_name: photo.original_name,
+          highlighted: key === highlighted
+        }
+      } else {
+        acc[key] = [...(Array.isArray(acc[key]) ? acc[key] : [acc[key]]), {
+          url: photo.url,
+          public_id: photo.public_id,
+          original_name: photo.original_name,
+          highlighted: key === highlighted
+        }]
       }
       return acc
     }, {})
@@ -109,7 +118,8 @@ exports.createPhoto = async (req, res) => {
   } catch (error) {
     if (cloudinaryResults && cloudinaryResults.length) {
       // revierte subidas a Cloudinary si falló la persistencia
-      await deleteFilesFromCloudinary(cloudinaryResults.map(p => p.public_id))
+      const arrayOfPublicIds = cloudinaryResults.map(p => Array.isArray(p) ? p.map(i => i.public_id) : p.public_id).flat()
+      await deleteFilesFromCloudinary(arrayOfPublicIds)
     }
     res.status(500).json({ error: true, msg: error.message })
   } finally {
@@ -172,11 +182,20 @@ exports.updatePhoto = async (req, res) => {
       newUploads = await newArrayPhotosCloudinaryFunction(filesArray)
       carPhotos = newUploads.reduce((acc, photo) => {
         const key = photo.fieldName
-        acc[key] = {
-          url: photo.url,
-          public_id: photo.public_id,
-          original_name: photo.original_name,
-          highlighted: key === highlighted
+        if (!acc[key]) {
+          acc[key] = {
+            url: photo.url,
+            public_id: photo.public_id,
+            original_name: photo.original_name,
+            highlighted: key === highlighted
+          }
+        } else {
+          acc[key] = [...(Array.isArray(acc[key]) ? acc[key] : [acc[key]]), {
+            url: photo.url,
+            public_id: photo.public_id,
+            original_name: photo.original_name,
+            highlighted: key === highlighted
+          }]
         }
         return acc
       }, {})

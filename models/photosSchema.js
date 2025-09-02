@@ -14,6 +14,9 @@ const PhotosSchema = new mongoose.Schema({
   fotoLateralIzquierda: { type: ImageSchema, required: true },
   fotoLateralDerecha: { type: ImageSchema, required: true },
   fotoInterior: { type: ImageSchema, required: true },
+  fotosExtra: [{
+    type: ImageSchema
+  }],
   marca: { type: String, required: true },
   modelo: { type: String, required: true },
   version: { type: String, required: true },

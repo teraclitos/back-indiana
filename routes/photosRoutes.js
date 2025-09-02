@@ -6,8 +6,7 @@ const { uploadFile, handleMulterErrors } = require('../middlewars/multer')
 
 router.post(
   '/create',
-  // tokenValidation(process.env.SUPER_USER),
-
+  tokenValidation(process.env.SUPER_USER),
   uploadFile().uploadCarPhotos,
   handleMulterErrors,
   [
