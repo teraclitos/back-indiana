@@ -9,17 +9,26 @@ const flattenFiles = (filesObject) => {
 }
 
 // Helpers
-const REQUIRED_PHOTOS = [
-  'fotoFrontal',
-  'fotoTrasera',
-  'fotoLateralIzquierda',
-  'fotoLateralDerecha',
-  'fotoInterior'
+const HIGHLIGHTED_PHOTOS = [
+  'fotoPrincipal',
+  'fotoHover'
+]
+
+const MAIN_PROPERTIES = [
+  ...HIGHLIGHTED_PHOTOS,
+  'modelo',
+  'marca',
+  'anio',
+  'version',
+  'precio',
+  'caja',
+  'cilindrada',
+  'kilometraje'
 ]
 
 const extractPublicIdsFromCarDoc = (carDoc) => {
   if (!carDoc) return []
-  return REQUIRED_PHOTOS
+  return HIGHLIGHTED_PHOTOS
     .map(k => carDoc[k]?.public_id)
     .filter(Boolean)
 }
@@ -29,20 +38,25 @@ exports.createPhoto = async (req, res) => {
   const {
     marca, modelo, version, precio, caja, segmento, cilindrada, color,
     anio, combustible, transmision, kilometraje, traccion, tapizado,
-    categoriaVehiculo, frenos, turbo, llantas, HP, detalle, highlighted = 'fotoFrontal'
+    categoriaVehiculo, frenos, turbo, llantas, HP, detalle
   } = req.body
   const files = req.files || {}
-  const missingPhotos = REQUIRED_PHOTOS.filter(field => !files[field] || files[field].length === 0)
-
+  const filesArray = flattenFiles(files)
+  const missingPhotos = HIGHLIGHTED_PHOTOS.filter(field => !files[field] || files[field].length === 0)
   if (missingPhotos.length > 0) {
-    deleteFiles(flattenFiles(files))
+    deleteFiles(filesArray)
     return res.status(400).json({
       error: true,
-      msg: `Faltan las siguientes fotos: ${missingPhotos.join(', ')}`
+      msg: `Faltan las siguientes fotos obligatorias: ${missingPhotos.join(', ')}`
     })
   }
-
-  const filesArray = flattenFiles(files)
+  if (filesArray.length < 7) {
+    deleteFiles(filesArray)
+    return res.status(400).json({
+      error: true,
+      msg: 'Se requieren al menos 7 fotos'
+    })
+  }
 
   // // Si usas express-validator, descomenta:
   // const errorFromExpressValidator = validationResult(req);
@@ -73,15 +87,13 @@ exports.createPhoto = async (req, res) => {
         acc[key] = {
           url: photo.url,
           public_id: photo.public_id,
-          original_name: photo.original_name,
-          highlighted: key === highlighted
+          original_name: photo.original_name
         }
       } else {
         acc[key] = [...(Array.isArray(acc[key]) ? acc[key] : [acc[key]]), {
           url: photo.url,
           public_id: photo.public_id,
-          original_name: photo.original_name,
-          highlighted: key === highlighted
+          original_name: photo.original_name
         }]
       }
       return acc
@@ -109,8 +121,8 @@ exports.createPhoto = async (req, res) => {
       turbo,
       llantas,
       HP,
-      detalle,
-      highlighted
+      detalle
+
     })
 
     await newCar.save()
@@ -132,7 +144,7 @@ exports.updatePhoto = async (req, res) => {
   const {
     marca, modelo, version, precio, caja, segmento, cilindrada, color,
     anio, combustible, transmision, kilometraje, traccion, tapizado,
-    categoriaVehiculo, frenos, turbo, llantas, HP, detalle, highlighted = 'fotoFrontal'
+    categoriaVehiculo, frenos, turbo, llantas, HP, detalle
   } = req.body
 
   const files = req.files || {}
@@ -140,7 +152,7 @@ exports.updatePhoto = async (req, res) => {
   let carPhotos
 
   // Requerir las 5 fotos igual que en create
-  const missingPhotos = REQUIRED_PHOTOS.filter(field => !files[field] || files[field].length === 0)
+  const missingPhotos = HIGHLIGHTED_PHOTOS.filter(field => !files[field] || files[field].length === 0)
 
   // // Si usas express-validator, descomenta:
   // const errorFromExpressValidator = validationResult(req);
@@ -186,15 +198,13 @@ exports.updatePhoto = async (req, res) => {
           acc[key] = {
             url: photo.url,
             public_id: photo.public_id,
-            original_name: photo.original_name,
-            highlighted: key === highlighted
+            original_name: photo.original_name
           }
         } else {
           acc[key] = [...(Array.isArray(acc[key]) ? acc[key] : [acc[key]]), {
             url: photo.url,
             public_id: photo.public_id,
-            original_name: photo.original_name,
-            highlighted: key === highlighted
+            original_name: photo.original_name
           }]
         }
         return acc
@@ -206,7 +216,13 @@ exports.updatePhoto = async (req, res) => {
         carPhotos[field] = oldPhoto[field]
       })
     }
-    // Mismo mapeo que create: usar fieldName
+    if (!files.fotosExtra) {
+      carPhotos.fotosExtra = oldPhoto.fotosExtra
+    }
+
+    if (Object.values(carPhotos).flat().length < 7) {
+      return res.status(400).json({ error: true, msg: 'Se requieren al menos 7 fotos' })
+    }
 
     // Actualizar documento
     const updated = await PhotosModel.findByIdAndUpdate(
@@ -233,8 +249,8 @@ exports.updatePhoto = async (req, res) => {
         turbo,
         llantas,
         HP,
-        detalle,
-        highlighted
+        detalle
+
       },
       { new: true }
     )
@@ -309,8 +325,25 @@ exports.getAllPhotos = async (req, res) => {
 
     const allPhotos = await PhotosModel.paginate(
       filter,
-      { page: parsedCursor, limit: parsedLimit, sort: { createdAt: -1 }, collation: { locale: 'es', strength: 1 } }
+      {
+        page: parsedCursor,
+        limit: parsedLimit,
+        sort: { createdAt: -1 },
+        collation: { locale: 'es', strength: 1 },
+        lean: true, // devuelve objetos JS planos, no documentos de mongoose
+        select: `${MAIN_PROPERTIES.join(' ')}`
+      }
     )
+
+    allPhotos.docs = allPhotos.docs.map(doc => {
+      return {
+        _id: doc._id,
+        ...MAIN_PROPERTIES.reduce((acc, prop) => {
+          acc[prop] = doc[prop]
+          return acc
+        }, {})
+      }
+    })
 
     res.status(200).json({ error: null, allPhotos })
   } catch (error) {

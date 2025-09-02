@@ -28,7 +28,7 @@ const uploadFile = () => {
   }
 
   const limits = {
-    files: 20 // ahora se permiten 20 archivos
+    files: 30 // ahora se permiten 20 archivos
   }
 
   const uploadOneImage = multer({ storage, fileFilter }).single('image')
@@ -36,11 +36,8 @@ const uploadFile = () => {
   const uploadExtraPhotos = multer({ storage, fileFilter, limits }).array('extraPhotos')
 
   const uploadCarPhotos = multer({ storage, fileFilter, limits }).fields([
-    { name: 'fotoFrontal', maxCount: 1 },
-    { name: 'fotoTrasera', maxCount: 1 },
-    { name: 'fotoLateralIzquierda', maxCount: 1 },
-    { name: 'fotoLateralDerecha', maxCount: 1 },
-    { name: 'fotoInterior', maxCount: 1 },
+    { name: 'fotoPrincipal', maxCount: 1 },
+    { name: 'fotoHover', maxCount: 1 },
     { name: 'fotosExtra' }
   ])
 
