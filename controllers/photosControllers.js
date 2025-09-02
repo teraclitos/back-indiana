@@ -119,7 +119,6 @@ exports.createPhoto = async (req, res) => {
 
 exports.updatePhoto = async (req, res) => {
   // Debe ser congruente con create: exigir las 5 fotos y el mismo mapeo
-  console.log('Updating photos for car:', req)
   const {
     marca, modelo, version, precio, caja, segmento, cilindrada, color,
     anio, combustible, transmision, kilometraje, traccion, tapizado,
@@ -128,16 +127,10 @@ exports.updatePhoto = async (req, res) => {
 
   const files = req.files || {}
   const filesArray = flattenFiles(files)
+  let carPhotos
 
   // Requerir las 5 fotos igual que en create
   const missingPhotos = REQUIRED_PHOTOS.filter(field => !files[field] || files[field].length === 0)
-  if (missingPhotos.length > 0) {
-    deleteFiles(filesArray)
-    return res.status(400).json({
-      error: true,
-      msg: `Faltan las siguientes fotos: ${missingPhotos.join(', ')}`
-    })
-  }
 
   // // Si usas express-validator, descomenta:
   // const errorFromExpressValidator = validationResult(req);
@@ -175,20 +168,26 @@ exports.updatePhoto = async (req, res) => {
     }
 
     // Subir nuevas fotos (congruente con create)
-    newUploads = await newArrayPhotosCloudinaryFunction(filesArray)
+    if (filesArray.length > 0) {
+      newUploads = await newArrayPhotosCloudinaryFunction(filesArray)
+      carPhotos = newUploads.reduce((acc, photo) => {
+        const key = photo.fieldName
+        acc[key] = {
+          url: photo.url,
+          public_id: photo.public_id,
+          original_name: photo.original_name,
+          highlighted: key === highlighted
+        }
+        return acc
+      }, {})
+    }
 
+    if (missingPhotos.length > 0) {
+      missingPhotos.forEach(field => {
+        carPhotos[field] = oldPhoto[field]
+      })
+    }
     // Mismo mapeo que create: usar fieldName
-    const carPhotos = newUploads.reduce((acc, photo) => {
-      const key = photo.fieldName
-      console.log({ key, highlighted })
-      acc[key] = {
-        url: photo.url,
-        public_id: photo.public_id,
-        original_name: photo.original_name,
-        highlighted: key === highlighted
-      }
-      return acc
-    }, {})
 
     // Actualizar documento
     const updated = await PhotosModel.findByIdAndUpdate(
@@ -240,7 +239,7 @@ exports.updatePhoto = async (req, res) => {
 }
 
 exports.getAllPhotos = async (req, res) => {
-  const { cursor, limit } = req.query
+  const { cursor = 1, limit = 8 } = req.query
   const parsedCursor = parseInt(cursor, 10) || 1
   const parsedLimit = parseInt(limit, 10) || 8
 
