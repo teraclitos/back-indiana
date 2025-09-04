@@ -28,7 +28,7 @@ const uploadFile = () => {
   }
 
   const limits = {
-    files: 30 // ahora se permiten 20 archivos
+    files: 30 // ahora se permiten 30 archivos
   }
 
   const uploadOneImage = multer({ storage, fileFilter }).single('image')

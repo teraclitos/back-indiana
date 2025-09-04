@@ -15,45 +15,31 @@ cloudinary.config({
   api_key: process.env.CLOUD_KEY,
   api_secret: process.env.CLOUD_SECRET
 })
+const uploadFileToCloudinary = async (file, fieldName) => {
+  return cloudinary.v2.uploader
+    .upload(file.path, photoEdition)
+    .then((result) => {
+      return {
+        fieldName,
+        url: result.secure_url,
+        original_name: file.originalname.split('.')[0],
+        public_id: result.public_id
+      }
+    })
+}
 const newArrayPhotosCloudinaryFunction = async (files) => {
   const arrayFilesPromises = files.map((file) => {
     if (Array.isArray(file)) {
-      return Promise.all(file.map(f => cloudinary.v2.uploader.upload(f.path, photoEdition).then((result) => {
-        return {
-          fieldName: file.fieldname,
-          url: result.secure_url,
-          original_name: f.originalname.split('.')[0],
-          public_id: result.public_id
-        }
-      })))
+      return Promise.all(file.map(f => uploadFileToCloudinary(f, file.fieldname)))
     }
-    return cloudinary.v2.uploader
-      .upload(file.path, photoEdition)
-      .then((result) => {
-        return {
-          fieldName: file.fieldname,
-          url: result.secure_url,
-          original_name: file.originalname.split('.')[0],
-          public_id: result.public_id
-        }
-      })
+    return uploadFileToCloudinary(file, file.fieldname)
   })
 
   return (await Promise.all(arrayFilesPromises)).flat()
 }
 
-const singleFilePromise = async (file) => {
-  return cloudinary.v2.uploader
-    .upload(file.path, photoEdition)
-    .then((result) => {
-      return {
-        url: result.secure_url,
-        public_id: result.public_id
-      }
-    })
-}
 const deleteFilesFromCloudinary = async (arrayOfFilesToBeDeletedPromises) => {
   arrayOfFilesToBeDeletedPromises.map(photo => cloudinary.v2.uploader.destroy(photo.public_id))
   await Promise.all(arrayOfFilesToBeDeletedPromises)
 }
-module.exports = { newArrayPhotosCloudinaryFunction, cloudinary, singleFilePromise, deleteFilesFromCloudinary }
+module.exports = { newArrayPhotosCloudinaryFunction, cloudinary, uploadFileToCloudinary, deleteFilesFromCloudinary }

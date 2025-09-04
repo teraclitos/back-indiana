@@ -1,5 +1,5 @@
 const PersonalModel = require('../models/personalSchema')
-const { singleFilePromise, cloudinary } = require('../middlewars/cloudinary')
+const { uploadFileToCloudinary, cloudinary } = require('../middlewars/cloudinary')
 const { validationResult } = require('express-validator')
 const fs = require('fs-extra')
 const deleteFile = (file) => {
@@ -32,7 +32,7 @@ exports.createPersonalInformation = async (req, res) => {
       .status(400)
       .json({ error: true, msg: errorFromExpressValidator.array()[0].msg })
   }
-  const imgProfileCloudinary = await singleFilePromise(file)
+  const imgProfileCloudinary = await uploadFileToCloudinary(file)
 
   try {
     const newPersonalInformation = new PersonalModel({
@@ -77,7 +77,7 @@ exports.updatePersonalInformation = async (req, res) => {
       .status(400)
       .json({ error: true, msg: errorFromExpressValidator.array()[0].msg })
   }
-  const profilePhoto = await singleFilePromise(file)
+  const profilePhoto = await uploadFileToCloudinary(file)
 
   try {
     const personalInformationMongoToUpdate = await PersonalModel.findById({
