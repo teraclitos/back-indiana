@@ -14,6 +14,11 @@ const HIGHLIGHTED_PHOTOS = [
   'fotoHover'
 ]
 
+const ALL_PHOTOS = [
+  ...HIGHLIGHTED_PHOTOS,
+  'fotosExtra'
+]
+
 const MAIN_PROPERTIES = [
   ...HIGHLIGHTED_PHOTOS,
   'modelo',
@@ -28,7 +33,7 @@ const MAIN_PROPERTIES = [
 
 const extractPublicIdsFromCarDoc = (carDoc) => {
   if (!carDoc) return []
-  return HIGHLIGHTED_PHOTOS
+  return ALL_PHOTOS
     .map(k => carDoc[k]?.public_id)
     .filter(Boolean)
 }
@@ -144,15 +149,17 @@ exports.updatePhoto = async (req, res) => {
   const {
     marca, modelo, version, precio, caja, segmento, cilindrada, color,
     anio, combustible, transmision, kilometraje, traccion, tapizado,
-    categoriaVehiculo, frenos, turbo, llantas, HP, detalle
+    categoriaVehiculo, frenos, turbo, llantas, HP, detalle, eliminadas = []
   } = req.body
 
   const files = req.files || {}
   const filesArray = flattenFiles(files)
   let carPhotos
+  const photosPublicIdsToDelete = [...eliminadas]
 
-  // Requerir las 5 fotos igual que en create
   const missingPhotos = HIGHLIGHTED_PHOTOS.filter(field => !files[field] || files[field].length === 0)
+
+  const newPhotos = Object.keys(files).filter(k => k !== 'fotosExtra')
 
   // // Si usas express-validator, descomenta:
   // const errorFromExpressValidator = validationResult(req);
@@ -216,8 +223,16 @@ exports.updatePhoto = async (req, res) => {
         carPhotos[field] = oldPhoto[field]
       })
     }
+    if (newPhotos.length > 0) {
+      photosPublicIdsToDelete.push(...newPhotos.map(f => oldPhoto[f]?.public_id).filter(Boolean))
+    }
     if (!files.fotosExtra) {
       carPhotos.fotosExtra = oldPhoto.fotosExtra
+      if (eliminadas.length > 0 && Array.isArray(eliminadas)) {
+        carPhotos.fotosExtra = carPhotos.fotosExtra.filter(photo => !eliminadas.includes(photo.public_id))
+      }
+    } else {
+      photosPublicIdsToDelete.push(...oldPhoto.fotosExtra.map(p => p.public_id))
     }
 
     if (Object.values(carPhotos).flat().length < 7) {
@@ -256,9 +271,8 @@ exports.updatePhoto = async (req, res) => {
     )
 
     // Borrar fotos antiguas de Cloudinary solo si el update fue OK
-    const oldPublicIds = extractPublicIdsFromCarDoc(oldPhoto)
-    if (oldPublicIds.length) {
-      await deleteFilesFromCloudinary(oldPublicIds)
+    if (photosPublicIdsToDelete.length > 0) {
+      await deleteFilesFromCloudinary(photosPublicIdsToDelete)
     }
 
     res.status(200).json({ error: null, msg: 'Auto actualizado correctamente', updated })

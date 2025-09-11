@@ -39,7 +39,7 @@ const newArrayPhotosCloudinaryFunction = async (files) => {
 }
 
 const deleteFilesFromCloudinary = async (arrayOfFilesToBeDeletedPromises) => {
-  arrayOfFilesToBeDeletedPromises.map(photo => cloudinary.v2.uploader.destroy(photo.public_id))
+  arrayOfFilesToBeDeletedPromises.map(publicId => cloudinary.v2.uploader.destroy(publicId))
   await Promise.all(arrayOfFilesToBeDeletedPromises)
 }
 module.exports = { newArrayPhotosCloudinaryFunction, cloudinary, uploadFileToCloudinary, deleteFilesFromCloudinary }
