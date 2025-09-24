@@ -226,13 +226,14 @@ exports.updatePhoto = async (req, res) => {
     if (newPhotos.length > 0) {
       photosPublicIdsToDelete.push(...newPhotos.map(f => oldPhoto[f]?.public_id).filter(Boolean))
     }
-    if (!files.fotosExtra) {
-      carPhotos.fotosExtra = oldPhoto.fotosExtra
-      if (eliminadas.length > 0 && Array.isArray(eliminadas)) {
-        carPhotos.fotosExtra = carPhotos.fotosExtra.filter(photo => !eliminadas.includes(photo.public_id))
-      }
-    } else {
-      photosPublicIdsToDelete.push(...oldPhoto.fotosExtra.map(p => p.public_id))
+    const oldPhotosExtraNotDeleted = oldPhoto.fotosExtra
+      ? oldPhoto.fotosExtra.filter(photo => !eliminadas.includes(photo.public_id))
+      : []
+    if (oldPhotosExtraNotDeleted.length > 0 && files.fotosExtra) {
+      carPhotos.fotosExtra = [
+        ...oldPhotosExtraNotDeleted,
+        ...carPhotos.fotosExtra || []
+      ]
     }
 
     if (Object.values(carPhotos).flat().length < 7) {
