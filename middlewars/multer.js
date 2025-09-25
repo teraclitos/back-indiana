@@ -38,7 +38,7 @@ const uploadFile = () => {
   const uploadCarPhotos = multer({ storage, fileFilter, limits }).fields([
     { name: 'fotoPrincipal', maxCount: 1 },
     { name: 'fotoHover', maxCount: 1 },
-    { name: 'fotosExtra', minCount: 0, maxCount: 28 } // maxCount ajustado a 28
+    { name: 'fotosExtra' }
   ])
 
   return { uploadExtraPhotos, uploadOneImage, uploadCarPhotos }

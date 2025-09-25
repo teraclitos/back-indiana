@@ -29,7 +29,7 @@ const uploadFileToCloudinary = async (file, fieldName) => {
 }
 const newArrayPhotosCloudinaryFunction = async (files) => {
   const arrayFilesPromises = files.map((file) => {
-    if (Array.isArray(file)) {
+    if (Array.isArray(file) && file.length > 0) {
       return Promise.all(file.map(f => uploadFileToCloudinary(f, file.fieldname)))
     }
     return uploadFileToCloudinary(file, file.fieldname)
