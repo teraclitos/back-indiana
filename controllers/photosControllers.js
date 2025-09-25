@@ -157,7 +157,7 @@ exports.updatePhoto = async (req, res) => {
   let carPhotos
   const photosPublicIdsToDelete = [...eliminadas]
 
-  const missingPhotos = HIGHLIGHTED_PHOTOS.filter(field => !files[field] || files[field].length === 0)
+  const missingPhotos = HIGHLIGHTED_PHOTOS.filter(field => !files[field])
 
   const newPhotos = Object.keys(files).filter(k => k !== 'fotosExtra')
 
