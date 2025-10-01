@@ -229,12 +229,21 @@ exports.updatePhoto = async (req, res) => {
     const oldPhotosExtraNotDeleted = oldPhoto.fotosExtra
       ? oldPhoto.fotosExtra.filter(photo => !eliminadas.includes(photo.public_id))
       : []
-    if (oldPhotosExtraNotDeleted.length > 0 && files.fotosExtra) {
+    console.log(carPhotos.fotosExtra)
+    if (!carPhotos.fotosExtra) {
+      carPhotos.fotosExtra = []
+    }
+    if (!Array.isArray(carPhotos.fotosExtra)) {
+      carPhotos.fotosExtra = [carPhotos.fotosExtra]
+    }
+    if (oldPhotosExtraNotDeleted.length > 0) {
       carPhotos.fotosExtra = [
         ...oldPhotosExtraNotDeleted,
         ...carPhotos.fotosExtra || []
       ]
     }
+
+    console.log({ oldPhotosExtraNotDeleted, carPhotosFotosExtra: carPhotos.fotosExtra })
 
     if (Object.values(carPhotos).flat().length < 7) {
       return res.status(400).json({ error: true, msg: 'Se requieren al menos 7 fotos' })
