@@ -154,7 +154,7 @@ exports.updatePhoto = async (req, res) => {
 
   const files = req.files || {}
   const filesArray = flattenFiles(files)
-  let carPhotos
+  let carPhotos = {}
   const photosPublicIdsToDelete = [...eliminadas]
 
   const missingPhotos = HIGHLIGHTED_PHOTOS.filter(field => !files[field])
