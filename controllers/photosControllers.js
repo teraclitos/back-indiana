@@ -39,7 +39,6 @@ const extractPublicIdsFromCarDoc = (carDoc) => {
 }
 
 exports.createPhoto = async (req, res) => {
-  // CAMPOS ORIGINALES + NUEVOS (anio, combustible, transmision, kilometraje, traccion, tapizado, categoriaVehiculo, frenos, turbo, llantas, HP, detalle)
   const {
     marca, modelo, version, precio, caja, segmento, cilindrada, color,
     anio, combustible, transmision, kilometraje, traccion, tapizado,
@@ -55,14 +54,6 @@ exports.createPhoto = async (req, res) => {
       msg: `Faltan las siguientes fotos obligatorias: ${missingPhotos.join(', ')}`
     })
   }
-  if (filesArray.length < 7) {
-    deleteFiles(filesArray)
-    return res.status(400).json({
-      error: true,
-      msg: 'Se requieren al menos 7 fotos'
-    })
-  }
-
   // // Si usas express-validator, descomenta:
   // const errorFromExpressValidator = validationResult(req);
   // if (!errorFromExpressValidator.isEmpty()) {
@@ -114,7 +105,6 @@ exports.createPhoto = async (req, res) => {
       segmento,
       cilindrada,
       color,
-      // NUEVOS
       anio,
       combustible,
       transmision,
@@ -229,7 +219,6 @@ exports.updatePhoto = async (req, res) => {
     const oldPhotosExtraNotDeleted = oldPhoto.fotosExtra
       ? oldPhoto.fotosExtra.filter(photo => !eliminadas.includes(photo.public_id))
       : []
-    console.log(carPhotos.fotosExtra)
     if (!carPhotos.fotosExtra) {
       carPhotos.fotosExtra = []
     }
@@ -241,12 +230,6 @@ exports.updatePhoto = async (req, res) => {
         ...oldPhotosExtraNotDeleted,
         ...carPhotos.fotosExtra || []
       ]
-    }
-
-    console.log({ oldPhotosExtraNotDeleted, carPhotosFotosExtra: carPhotos.fotosExtra })
-
-    if (Object.values(carPhotos).flat().length < 7) {
-      return res.status(400).json({ error: true, msg: 'Se requieren al menos 7 fotos' })
     }
 
     // Actualizar documento
@@ -262,7 +245,6 @@ exports.updatePhoto = async (req, res) => {
         segmento,
         cilindrada,
         color,
-        // NUEVOS
         anio,
         combustible,
         transmision,

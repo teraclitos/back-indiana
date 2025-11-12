@@ -2,7 +2,6 @@ const express = require('express')
 const app = express()
 const morgan = require('morgan')
 const cors = require('cors')
-// const path = require('path')
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config()
@@ -15,10 +14,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use(morgan('dev'))
 app.use(cors())
 
-// app.use("/", express.static(path.join(__dirname, "tmp")));
-
 const routes = require('./routes')
-// const { setTimeout } = require('timers/promises')
 
 app.use('/', routes)
 
