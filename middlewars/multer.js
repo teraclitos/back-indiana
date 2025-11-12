@@ -2,12 +2,7 @@ const multer = require('multer')
 const path = require('path')
 const { v4: uuidv4 } = require('uuid')
 
-let folder = ''
-if (process.env.NODE_ENV === 'production') {
-  folder = '../../../tmp'
-} else {
-  folder = '../tmp'
-}
+const folder = path.resolve(__dirname, 'tmp')
 
 const uploadFile = () => {
   const storage = multer.diskStorage({
