@@ -1,7 +1,7 @@
 const cloudinary = require('cloudinary')
 
 const photoEdition = {
-  folder: 'photo-bioteil',
+  folder: 'indiana',
   transformation: {
     crop: 'fill',
     fetch_format: 'auto',
