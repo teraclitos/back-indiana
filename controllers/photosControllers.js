@@ -34,8 +34,14 @@ const MAIN_PROPERTIES = [
 const extractPublicIdsFromCarDoc = (carDoc) => {
   if (!carDoc) return []
   return ALL_PHOTOS
-    .map(k => carDoc[k]?.public_id)
-    .filter(Boolean)
+    .map(k => {
+      if (Array.isArray(carDoc[k])) {
+        return carDoc[k].map(photo => photo.public_id)
+      } else if (carDoc[k] && carDoc[k].public_id) {
+        return carDoc[k].public_id
+      }
+    })
+    .filter(Boolean).flat()
 }
 
 exports.createPhoto = async (req, res) => {
