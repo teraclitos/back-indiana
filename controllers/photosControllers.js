@@ -69,7 +69,7 @@ exports.createPhoto = async (req, res) => {
 
   // Único por marca+modelo+versión (case/accents insensitive)
   const carExists = await PhotosModel.findOne(
-    { marca, modelo, version },
+    { marca, modelo, version, kilometraje },
     {},
     { collation: { locale: 'es', strength: 1 } }
   )
@@ -176,7 +176,7 @@ exports.updatePhoto = async (req, res) => {
 
     // Validar unicidad si cambia marca+modelo+versión
     const carExists = await PhotosModel.findOne(
-      { marca, modelo, version },
+      { marca, modelo, version, kilometraje },
       {},
       { collation: { locale: 'es', strength: 1 } }
     )
