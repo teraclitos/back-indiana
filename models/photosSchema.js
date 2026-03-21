@@ -17,22 +17,18 @@ const PhotosSchema = new mongoose.Schema({
   modelo: { type: String, required: true },
   version: { type: String },
   precio: { type: Number, required: true },
+  descuento : { type: Number, default: 0, min: 0, max: 100  },
+  precioOferta: { type: Number },
+  oferta: { type: Boolean, default: false },
   caja: { type: String, required: true },
   segmento: { type: String },
   cilindrada: { type: Number },
   color: { type: String },
   anio: { type: Number, required: true },
   combustible: { type: String },
-  transmision: { type: String },
   kilometraje: { type: Number, required: true },
   traccion: { type: String },
-  tapizado: { type: String },
-  categoriaVehiculo: { type: String },
-  frenos: { type: String },
-  turbo: { type: String },
-  llantas: { type: String },
   HP: { type: String },
-  detalle: { type: String }
 }, {
   timestamps: true
 })
